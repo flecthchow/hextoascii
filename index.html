@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hex ↔ ASCII 转换器</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 750px;
+    }
+
+    /* === Header === */
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: -0.5px;
+    }
+
+    .header .badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 3px 12px;
+      font-size: 12px;
+      color: #666;
+      background: #e8e8ec;
+      border-radius: 20px;
+    }
+
+    /* === Panel === */
+    .panel {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+      padding: 28px 30px;
+      margin-bottom: 16px;
+    }
+
+    .panel-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-title .icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+    }
+
+    .icon-hex  { background: #ede9fe; color: #7c3aed; }
+    .icon-ascii { background: #dbeafe; color: #2563eb; }
+
+    /* === Tabs (Hex 输入支持两种模式) === */
+    .tab-bar {
+      display: flex;
+      gap: 0;
+      margin-bottom: 12px;
+      background: #f3f4f6;
+      border-radius: 8px;
+      padding: 3px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 7px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      color: #666;
+      background: transparent;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .tab-btn.active {
+      background: #fff;
+      color: #1a1a2e;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+
+    .tab-btn:hover:not(.active) {
+      color: #333;
+    }
+
+    /* === Textarea === */
+    textarea {
+      width: 100%;
+      min-height: 110px;
+      padding: 12px 14px;
+      font-family: "SF Mono", "Fira Code", "Cascadia Code", Consolas, "Courier New", monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 8px;
+      resize: vertical;
+      transition: border-color .15s, box-shadow .15s;
+      background: #fafbfc;
+      color: #222;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #7c3aed;
+      box-shadow: 0 0 0 3px rgba(124,58,237,.1);
+      background: #fff;
+    }
+
+    textarea.readonly {
+      background: #f8f9fb;
+      color: #555;
+      cursor: default;
+    }
+
+    /* === Buttons === */
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 20px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+
+    .btn-primary {
+      background: #7c3aed;
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: #6d28d9; }
+    .btn-primary:active { transform: scale(.98); }
+
+    .btn-outline {
+      background: #fff;
+      color: #555;
+      border: 1.5px solid #e5e7eb;
+    }
+
+    .btn-outline:hover {
+      background: #f9fafb;
+      border-color: #ccc;
+    }
+
+    .btn-outline:active { transform: scale(.98); }
+
+    .btn-sm {
+      padding: 5px 12px;
+      font-size: 12px;
+    }
+
+    /* === Error / Info === */
+    .toast {
+      display: none;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+
+    .toast.error {
+      display: block;
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    .toast.info {
+      display: block;
+      background: #eff6ff;
+      color: #1e40af;
+      border: 1px solid #bfdbfe;
+    }
+
+    /* === Swap arrow === */
+    .swap-section {
+      display: flex;
+      justify-content: center;
+      margin: -6px 0;
+    }
+
+    .swap-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid #e5e7eb;
+      background: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all .15s;
+      color: #666;
+      z-index: 1;
+    }
+
+    .swap-btn:hover {
+      background: #f9fafb;
+      border-color: #ccc;
+      color: #333;
+    }
+
+    /* === Footer === */
+    .footer {
+      text-align: center;
+      font-size: 12px;
+      color: #aaa;
+      margin-top: 20px;
+    }
+
+    /* === Responsive === */
+    @media (max-width: 500px) {
+      body { padding: 20px 10px; }
+      .panel { padding: 20px 16px; }
+      .btn { padding: 8px 14px; font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- ====== Header ====== -->
+    <div class="header">
+      <h1>Hex &#x2194; ASCII 转换器</h1>
+      <span class="badge">内网工具 · 纯浏览器计算 · 不上传数据</span>
+    </div>
+
+    <!-- ====== Hex → ASCII ====== -->
+    <div class="panel">
+      <div class="panel-title">
+        <span class="icon icon-hex">&#x1F6E1;</span> Hex → ASCII
+      </div>
+
+      <!-- 输入模式切换 -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-mode="space" onclick="switchHexTab('space')">
+          空格分隔<br>如 48 65 6c 6c 6f
+        </button>
+        <button class="tab-btn" data-mode="nospace" onclick="switchHexTab('nospace')">
+          无分隔<br>如 48656c6c6f
+        </button>
+        <button class="tab-btn" data-mode="0x" onclick="switchHexTab('0x')">
+          0x 前缀<br>如 0x48 0x65
+        </button>
+      </div>
+
+      <textarea id="hexInput" placeholder="在此粘贴十六进制数据..."></textarea>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="hexToAscii()">▼ 转 ASCII</button>
+        <button class="btn btn-outline btn-sm" onclick="clearHex()">清空</button>
+        <button class="btn btn-outline btn-sm" onclick="sampleHex()">填入示例</button>
+      </div>
+
+      <div id="hexError" class="toast"></div>
+    </div>
+
+    <!-- ====== 交换按钮 ====== -->
+    <div class="swap-section">
+      <button class="swap-btn" onclick="swapAll()" title="交换内容">&#x21C5;</button>
+    </div>
+
+    <!-- ====== ASCII → Hex ====== -->
+    <div class="panel">
+      <div class="panel-title">
+        <span class="icon icon-ascii">&#x2328;</span> ASCII → Hex
+      </div>
+
+      <!-- 输出格式选择 -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-fmt="space" onclick="switchAsciiTab('space')">
+          空格分隔
+        </button>
+        <button class="tab-btn" data-fmt="nospace" onclick="switchAsciiTab('nospace')">
+          无分隔
+        </button>
+        <button class="tab-btn" data-fmt="0x" onclick="switchAsciiTab('0x')">
+          0x 前缀
+        </button>
+        <button class="tab-btn" data-fmt="uppercase" onclick="switchAsciiTab('uppercase')">
+          大写
+        </button>
+      </div>
+
+      <textarea id="asciiInput" placeholder="在此输入普通文本..."></textarea>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="asciiToHex()">▼ 转 Hex</button>
+        <button class="btn btn-outline btn-sm" onclick="clearAscii()">清空</button>
+        <button class="btn btn-outline btn-sm" onclick="sampleAscii()">填入示例</button>
+      </div>
+
+      <div id="asciiError" class="toast"></div>
+    </div>
+
+    <!-- ====== 输出结果 ====== -->
+    <div class="panel" id="resultPanel" style="display:none;">
+      <div class="panel-title">转换结果</div>
+      <textarea id="resultOutput" class="readonly" readonly style="min-height:80px;"></textarea>
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn btn-outline btn-sm" onclick="copyResult()">📋 复制结果</button>
+      </div>
+    </div>
+
+    <div class="footer">
+      数据仅在浏览器本地处理，不会上传到任何服务器 &nbsp;|&nbsp; GitLab Pages
+    </div>
+
+  </div>
+
+  <script>
+    // ========================
+    // 状态管理
+    // ========================
+    let hexInputMode = 'space';    // space | nospace | 0x
+    let asciiOutputFmt = 'space';  // space | nospace | 0x | uppercase
+
+    // ========================
+    // Tab 切换
+    // ========================
+    function switchHexTab(mode) {
+      hexInputMode = mode;
+      document.querySelectorAll('#hexInput').forEach(el => {}); // noop
+      const tabBar = document.querySelectorAll('.tab-bar')[0];
+      tabBar.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+      });
+    }
+
+    function switchAsciiTab(fmt) {
+      asciiOutputFmt = fmt;
+      const tabBar = document.querySelectorAll('.tab-bar')[1];
+      tabBar.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.fmt === fmt);
+      });
+    }
+
+    // ========================
+    // 隐藏错误提示
+    // ========================
+    function hideError(id) {
+      const el = document.getElementById(id);
+      el.style.display = 'none';
+      el.textContent = '';
+    }
+
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.className = 'toast error';
+      el.style.display = 'block';
+    }
+
+    function showInfo(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.className = 'toast info';
+      el.style.display = 'block';
+    }
+
+    function showResult(text) {
+      const panel = document.getElementById('resultPanel');
+      const output = document.getElementById('resultOutput');
+      output.value = text;
+      panel.style.display = '';
+    }
+
+    // ========================
+    // 解析 Hex 输入
+    // ========================
+    function parseHex(input) {
+      switch (hexInputMode) {
+        case 'space':
+          // "48 65 6c 6c 6f"
+          return input.trim().split(/\s+/).filter(Boolean);
+
+        case 'nospace':
+          // "48656c6c6f" → 每两个字符一组
+          const cleaned = input.trim().replace(/\s+/g, '');
+          if (cleaned.length % 2 !== 0) return null; // 奇数长度说明格式不对
+          const pairs = [];
+          for (let i = 0; i < cleaned.length; i += 2) {
+            pairs.push(cleaned.substring(i, i + 2));
+          }
+          return pairs;
+
+        case '0x':
+          // "0x48 0x65" or "0x48,0x65"
+          return input
+            .trim()
+            .split(/[\s,]+/)
+            .filter(Boolean)
+            .map(s => s.replace(/^0x/i, ''));
+
+        default:
+          return [];
+      }
+    }
+
+    // ========================
+    // Hex → ASCII
+    // ========================
+    function hexToAscii() {
+      hideError('hexError');
+      const input = document.getElementById('hexInput').value;
+
+      if (!input.trim()) {
+        showError('hexError', '请先输入十六进制数据');
+        return;
+      }
+
+      const hexParts = parseHex(input);
+
+      if (hexParts === null) {
+        showError('hexError', '无分隔模式下 Hex 长度必须为偶数（每 2 个字符代表一个字节）');
+        return;
+      }
+
+      const chars = [];
+      for (const h of hexParts) {
+        if (!/^[0-9a-fA-F]{1,2}$/.test(h)) {
+          showError('hexError', `无效的十六进制值: "${h}"`);
+          return;
+        }
+        const code = parseInt(h, 16);
+        chars.push(String.fromCharCode(code));
+      }
+
+      const result = chars.join('');
+
+      if (!result) {
+        showError('hexError', '转换结果为空');
+        return;
+      }
+
+      showResult(result);
+      hideError('hexError');
+    }
+
+    // ========================
+    // ASCII → Hex
+    // ========================
+    function asciiToHex() {
+      hideError('asciiError');
+      const input = document.getElementById('asciiInput').value;
+
+      if (!input) {
+        showError('asciiError', '请先输入 ASCII 文本');
+        return;
+      }
+
+      const hexParts = [...input].map(c => {
+        const code = c.charCodeAt(0);
+        return code.toString(16).padStart(2, '0');
+      });
+
+      let result;
+      switch (asciiOutputFmt) {
+        case 'space':
+          result = hexParts.join(' ');
+          break;
+        case 'nospace':
+          result = hexParts.join('');
+          break;
+        case '0x':
+          result = hexParts.map(h => '0x' + h).join(' ');
+          break;
+        case 'uppercase':
+          result = hexParts.map(h => h.toUpperCase()).join(' ');
+          break;
+        default:
+          result = hexParts.join(' ');
+      }
+
+      showResult(result);
+    }
+
+    // ========================
+    // 工具方法
+    // ========================
+    function sampleHex() {
+      document.getElementById('hexInput').value = '48 65 6c 6c 6f 20 57 6f 72 6c 64 21';
+      hideError('hexError');
+    }
+
+    function sampleAscii() {
+      document.getElementById('asciiInput').value = 'Hello World!';
+      hideError('asciiError');
+    }
+
+    function clearHex() {
+      document.getElementById('hexInput').value = '';
+      hideError('hexError');
+    }
+
+    function clearAscii() {
+      document.getElementById('asciiInput').value = '';
+      hideError('asciiError');
+    }
+
+    function swapAll() {
+      const hexVal = document.getElementById('hexInput').value;
+      const asciiVal = document.getElementById('asciiInput').value;
+      document.getElementById('hexInput').value = '';
+      document.getElementById('asciiInput').value = hexVal;
+      // 把 ascii 区域内容转 hex 后放入 hex 区域（如果 ascii 区域有内容）
+      if (asciiVal) {
+        asciiToHexInternal();
+      }
+      hideError('hexError');
+      hideError('asciiError');
+    }
+
+    function asciiToHexInternal() {
+      // 内部版本：从 asciiInput 读取，结果放回 hexInput
+      const input = document.getElementById('asciiInput').value;
+      if (!input) return;
+      const hexParts = [...input].map(c => {
+        const code = c.charCodeAt(0);
+        return code.toString(16).padStart(2, '0');
+      });
+      let result;
+      switch (asciiOutputFmt) {
+        case 'space':     result = hexParts.join(' '); break;
+        case 'nospace':   result = hexParts.join(''); break;
+        case '0x':        result = hexParts.map(h => '0x' + h).join(' '); break;
+        case 'uppercase': result = hexParts.map(h => h.toUpperCase()).join(' '); break;
+        default:          result = hexParts.join(' ');
+      }
+      document.getElementById('hexInput').value = result;
+    }
+
+    function copyResult() {
+      const output = document.getElementById('resultOutput');
+      output.select();
+      document.execCommand('copy');
+
+      // 视觉反馈
+      const btn = document.querySelector('#resultPanel .btn');
+      const originalText = btn.textContent;
+      btn.textContent = '✅ 已复制!';
+      btn.style.color = '#059669';
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.style.color = '';
+      }, 1500);
+    }
+
+    // ========================
+    // 键盘快捷键
+    // ========================
+    document.addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        // 聚焦在哪个输入框就执行对应方向转换
+        const focused = document.activeElement;
+        if (focused && focused.id === 'hexInput') {
+          hexToAscii();
+        } else if (focused && focused.id === 'asciiInput') {
+          asciiToHex();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
